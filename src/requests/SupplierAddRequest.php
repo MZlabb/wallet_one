@@ -9,24 +9,26 @@
 namespace WalletOne\requests;
 
 /**
- * Данный запрос отправляется после регистрации сделки в системе W1.
- * При отправке запроса происходит перенаправление пользователя на страницу оплаты сделки.
+ * Данный запрос используется для получения идентификатора карты при отклике исполнителя на сделку.
+ * Для выбора карты исполнитель будет переадресован на соответствующую страницу в системе W1.
  *
  * Идентификатор площадки
  * @property string $platformId
  *
- * Идентификатор сделки на стороне площадки
- * @property string $platformDealId
+ * Идентификатор исполнителя на стороне площадки
+ * @property string $platformBeneficiaryId
  *
- * Некоторые способы оплаты поддерживают передачу авторизационных данных из площадки, позволяя плательщику миновать
- * платежные страницы и сразу инициировать оплату.
- * @property string $authData
+ * Номер телефона заказчика
+ * @property string $phoneNumber
+ *
+ * Наименование заказчика (опционально)
+ * @property string $title
  *
  * Урл возврата пользователя
  * @property string $returnUrl
  *
  * Перейти сразу к добавлению нового инструмента оплаты. Происходит при передаче значения “True”.
- * @property bool $redirectToCardAddition
+ * @property bool $redirectToPaymentToolAddition
  *
  * Способ оплаты. Перейти к добавлению/выбору инструмента оплаты конкретного способа.
  * Если не передан выбирается способ по умолчанию.
@@ -42,27 +44,29 @@ namespace WalletOne\requests;
  * @property string $language
  *
  */
-class PayRequest extends BaseRequest implements W1FormRequestInterface
+
+class SupplierAddRequest extends BaseRequest implements W1FormRequestInterface
 {
     public $platformId;
-    public $platformDealId;
-    public $authData;
+    public $platformBeneficiaryId;
+    public $phoneNumber;
+    public $title;
     public $returnUrl;
-    public $redirectToCardAddition;
+    public $redirectToPaymentToolAddition;
     public $paymentTypeId;
     public $signature;
     public $timestamp;
     public $language = 'en';
 
     public static $method = 'POST';
-    public static $endPoint = '/deal/pay';
+    public static $endPoint = '/v2/beneficiary';
 
     public function rules()
     {
         return [
-            [['platformId', 'platformDealId', 'returnUrl', 'signature', 'timestamp'], 'required'],
+            [['platformId', 'platformBeneficiaryId', 'returnUrl', 'signature', 'timestamp', 'phoneNumber'], 'required'],
             [['authData', 'paymentTypeId'], 'string'],
-            [['redirectToCardAddition'], 'boolean'],
+            [['redirectToPaymentToolAddition'], 'boolean'],
             [['returnUrl'], 'url']
         ];
     }
