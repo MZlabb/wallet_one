@@ -8,7 +8,7 @@
 
 namespace WalletOne\responses;
 
-use yii\base\Model;
+use yii\helpers\ArrayHelper;
 
 /**
  * Модель данных статуса сделки.
@@ -66,7 +66,7 @@ use yii\base\Model;
  *
  */
 
-class DealResponse extends Model
+class DealResponse extends BaseResponse
 {
     public $platformDealId;
     public $dealStateId;
@@ -86,13 +86,13 @@ class DealResponse extends Model
     public $lastErrorCode;
     public $lastErrorMessage;
 
+    protected $listName = 'Deals';
 
     public function setAttributes($values, $safeOnly = true)
     {
-        $array = [];
-        foreach ($values as $key => $value) {
-            $array[lcfirst($key)] = $values;
+        if (count($values) > 0 && !ArrayHelper::keyExists('Deals', $values) && !ArrayHelper::keyExists('PlatformDealId', $values)) {
+            $values = [$this->listName => $values];
         }
-        parent::setAttributes($array, $safeOnly);
+        parent::setAttributes($values, $safeOnly);
     }
 }

@@ -8,15 +8,15 @@
 
 namespace WalletOne;
 
-use GuzzleHttp\Client;
-use GuzzleHttp\Exception\RequestException;
-use GuzzleHttp\Psr7\Request;
 use WalletOne\exceptions\W1ExecuteRequestException;
 use WalletOne\exceptions\W1WrongParamException;
 use WalletOne\requests\DealRegisterRequest;
 use WalletOne\requests\W1FormRequestInterface;
 use WalletOne\responses\DealResponse;
 use WalletOne\responses\PaymentMethodResponse;
+use WalletOne\responses\PayoutResponse;
+use WalletOne\responses\RefundResponse;
+use WalletOne\responses\W1Config;
 use yii\base\BaseObject;
 use yii\helpers\ArrayHelper;
 
@@ -25,25 +25,20 @@ use yii\helpers\ArrayHelper;
  */
 class W1Api extends BaseObject
 {
-    const TIMESTAMP_TIME_ZONE = '+0000';
+    /**
+     * @var W1Config $conf
+     */
+    private $conf;
+    /**
+     * @var W1Client $w1Client
+     */
+    private $w1Client;
 
-    const END_POINT = 'https://api.w1.ru/p2p/';
-    const TEST_END_POINT = 'https://api.dev.walletone.com/p2p/';
-
-    public $platformId;
-    public $signatureKey;
-
-    private $baseW1Url;
-
-    public $hashFunction;
-
-    public function __construct(array $config = [], $testMode = false)
+    public function __construct(array $config = [])
     {
-        parent::__construct($config);
-        $this->baseW1Url = $testMode ? self::END_POINT : self::TEST_END_POINT;
-        $this->hashFunction = function (string $string) {
-            return md5($string);
-        };
+        $this->conf = new W1Config($config);
+        $this->w1Client = new W1Client($this->conf);
+        parent::__construct();
     }
 
     /**
@@ -53,8 +48,8 @@ class W1Api extends BaseObject
      */
     public function getFormData(W1FormRequestInterface $request): array
     {
-        $request->platformId = $this->platformId;
-        $request->timestamp = $this->createTimeStamp();
+        $request->platformId = $this->conf->platformId;
+        $request->timestamp = W1Client::createTimeStamp();
         $this->createSignatureForForm($request);
         if (!$request->validate()) {
             $errorsString = print_r($request->getErrors(), true);
@@ -68,7 +63,6 @@ class W1Api extends BaseObject
      * @return DealResponse
      * @throws W1ExecuteRequestException
      * @throws W1WrongParamException
-     * @throws \GuzzleHttp\Exception\GuzzleException
      */
     public function dealRegister(DealRegisterRequest $request)
     {
@@ -76,9 +70,8 @@ class W1Api extends BaseObject
             $errorsString = print_r($request->getErrors(), true);
             throw new W1WrongParamException($errorsString);
         }
-        $httpRequest = $this->getHttpRequest($request->getEndPoint(), $request->getMethod(), (string)$request);
-        $responseString = $this->sendRequest($httpRequest);
-        return $this->prepareDealResponse($responseString);
+        $this->w1Client->execute($request->getEndPoint(), $request->getMethod(), (string)$request);
+        return $this->w1Client->getResponseObject(W1Client::RESP_TYPE_DEAL);
     }
 
     /**
@@ -87,14 +80,13 @@ class W1Api extends BaseObject
      * @param string $dealId
      * @return DealResponse
      * @throws W1ExecuteRequestException
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws W1WrongParamException
      */
     public function dealComplete(string $dealId)
     {
         $url = "/api/v3/deals/{$dealId}/complete";
-        $httpRequest = $this->getHttpRequest($url, 'PUT');
-        $responseString = $this->sendRequest($httpRequest);
-        return $this->prepareDealResponse($responseString);
+        $this->w1Client->execute($url, 'PUT');
+        return $this->w1Client->getResponseObject(W1Client::RESP_TYPE_DEAL);
     }
 
     /**
@@ -103,14 +95,13 @@ class W1Api extends BaseObject
      * @param string $dealId
      * @return DealResponse
      * @throws W1ExecuteRequestException
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws W1WrongParamException
      */
     public function dealConfirm(string $dealId)
     {
         $url = "/api/v3/deals/{$dealId}/confirm";
-        $httpRequest = $this->getHttpRequest($url, 'PUT');
-        $responseString = $this->sendRequest($httpRequest);
-        return $this->prepareDealResponse($responseString);
+        $this->w1Client->execute($url, 'PUT');
+        return $this->w1Client->getResponseObject(W1Client::RESP_TYPE_DEAL);
     }
 
     /**
@@ -120,15 +111,14 @@ class W1Api extends BaseObject
      * @param bool $returnMoneyWithCommission
      * @return DealResponse
      * @throws W1ExecuteRequestException
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws W1WrongParamException
      */
     public function dealCancel(string $dealId, bool $returnMoneyWithCommission = false)
     {
         $body = json_encode(['WithCommission' => $returnMoneyWithCommission]);
         $url = "/api/v3/deals/{$dealId}/cancel";
-        $httpRequest = $this->getHttpRequest($url, 'PUT', $body);
-        $responseString = $this->sendRequest($httpRequest);
-        return $this->prepareDealResponse($responseString);
+        $this->w1Client->execute($url, 'PUT', $body);
+        return $this->w1Client->getResponseObject(W1Client::RESP_TYPE_DEAL);
     }
 
     /**
@@ -137,14 +127,13 @@ class W1Api extends BaseObject
      * @param string $dealId
      * @return DealResponse
      * @throws W1ExecuteRequestException
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws W1WrongParamException
      */
     public function getDealStatus(string $dealId)
     {
         $url = "/api/v3/deals/{$dealId}";
-        $httpRequest = $this->getHttpRequest($url, 'GET');
-        $responseString = $this->sendRequest($httpRequest);
-        return $this->prepareDealResponse($responseString);
+        $this->w1Client->execute($url, 'GET');
+        return $this->w1Client->getResponseObject(W1Client::RESP_TYPE_DEAL);
     }
 
     /**
@@ -155,7 +144,7 @@ class W1Api extends BaseObject
      * @param bool $autoComplete
      * @return DealResponse
      * @throws W1ExecuteRequestException
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws W1WrongParamException
      */
     public function changeSupplierPaymentWay(string $dealId, string $paymentToolId, bool $autoComplete = false)
     {
@@ -166,9 +155,8 @@ class W1Api extends BaseObject
             ]
         );
         $url = "api/v3/deals/{$dealId}/beneficiary/tool";
-        $httpRequest = $this->getHttpRequest($url, 'PUT', $body);
-        $responseString = $this->sendRequest($httpRequest);
-        return $this->prepareDealResponse($responseString);
+        $this->w1Client->execute($url, 'PUT', $body);
+        return $this->w1Client->getResponseObject(W1Client::RESP_TYPE_DEAL);
     }
 
     /**
@@ -178,7 +166,7 @@ class W1Api extends BaseObject
      * @param string $paymentToolId
      * @return DealResponse
      * @throws W1ExecuteRequestException
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws W1WrongParamException
      */
     public function changeCustomerPaymentWay(string $dealId, string $paymentToolId)
     {
@@ -188,9 +176,8 @@ class W1Api extends BaseObject
             ]
         );
         $url = "api/v3/deals/{$dealId}/payer/tool";
-        $httpRequest = $this->getHttpRequest($url, 'PUT', $body);
-        $responseString = $this->sendRequest($httpRequest);
-        return $this->prepareDealResponse($responseString);
+        $this->w1Client->execute($url, 'PUT', $body);
+        return $this->w1Client->getResponseObject(W1Client::RESP_TYPE_DEAL);
     }
 
     /**
@@ -200,14 +187,13 @@ class W1Api extends BaseObject
      * @param string $paymentToolId
      * @return PaymentMethodResponse
      * @throws W1ExecuteRequestException
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws W1WrongParamException
      */
     public function getSupplierPaymentWay(string $supplierId, string $paymentToolId)
     {
         $url = "api/v3/beneficiaries/{$supplierId}/tools/{$paymentToolId}";
-        $httpRequest = $this->getHttpRequest($url, 'GET');
-        $responseString = $this->sendRequest($httpRequest);
-        return $this->preparePaymentMethodResponse($responseString);
+        $this->w1Client->execute($url, 'GET');
+        return $this->w1Client->getResponseObject(W1Client::RESP_TYPE_PAYMENT_METHOD);
     }
 
     /**
@@ -219,7 +205,7 @@ class W1Api extends BaseObject
      * @param string $itemsPerPage
      * @return PaymentMethodResponse
      * @throws W1ExecuteRequestException
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws W1WrongParamException
      */
     public function getSupplierPaymentWayList(
         string $supplierId,
@@ -227,27 +213,11 @@ class W1Api extends BaseObject
         string $pageNumber = null,
         string $itemsPerPage = null
     ) {
-        $url = "api/v3/beneficiaries/{$supplierId}/tools";
+        $url = "api/v3/beneficiaries/{$supplierId}/tools"
+            . $this->prepareQueryString(compact('paymentTypeId', 'pageNumber', 'itemsPerPage'));
 
-        $queryArray = [];
-
-        if (isset($paymentTypeId)) {
-            $queryArray['paymentTypeId'] = $paymentTypeId;
-        }
-        if (isset($pageNumber)) {
-            $queryArray['pageNumber'] = $pageNumber;
-        }
-        if (isset($itemsPerPage)) {
-            $queryArray['itemsPerPage'] = $itemsPerPage;
-        }
-
-        if ($queryArray) {
-            $url .= '?' . http_build_query($queryArray);
-        }
-
-        $httpRequest = $this->getHttpRequest($url, 'GET');
-        $responseString = $this->sendRequest($httpRequest);
-        return $this->preparePaymentMethodResponse($responseString);
+        $this->w1Client->execute($url, 'GET');
+        return $this->w1Client->getResponseObject(W1Client::RESP_TYPE_PAYMENT_METHOD);
     }
 
     /**
@@ -257,31 +227,28 @@ class W1Api extends BaseObject
      * @param string $paymentToolId
      * @return string
      * @throws W1ExecuteRequestException
-     * @throws \GuzzleHttp\Exception\GuzzleException
      */
     public function removeSupplierPaymentWay(string $supplierId, string $paymentToolId)
     {
         $url = "api/v3/beneficiaries/{$supplierId}/tools/{$paymentToolId}";
-        $httpRequest = $this->getHttpRequest($url, 'DELETE');
-        $responseString = $this->sendRequest($httpRequest);
-        return $responseString;
+        $this->w1Client->execute($url, 'DELETE');
+        return $this->w1Client->getResponseString();
     }
 
     /**
-     *Получение инструмента исполнителя
+     * Получение инструмента исполнителя
      *
      * @param string $supplierId
      * @param string $paymentToolId
      * @return PaymentMethodResponse
      * @throws W1ExecuteRequestException
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws W1WrongParamException
      */
     public function getCustomerPaymentWay(string $supplierId, string $paymentToolId)
     {
         $url = "api/v3/payers/{$supplierId}/tools/{$paymentToolId}";
-        $httpRequest = $this->getHttpRequest($url, 'GET');
-        $responseString = $this->sendRequest($httpRequest);
-        return $this->preparePaymentMethodResponse($responseString);
+        $this->w1Client->execute($url, 'GET');
+        return $this->w1Client->getResponseObject(W1Client::RESP_TYPE_PAYMENT_METHOD);
     }
 
     /**
@@ -293,7 +260,7 @@ class W1Api extends BaseObject
      * @param string|null $itemsPerPage
      * @return PaymentMethodResponse
      * @throws W1ExecuteRequestException
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws W1WrongParamException
      */
     public function getCustomerPaymentWayList(
         string $customerId,
@@ -301,27 +268,11 @@ class W1Api extends BaseObject
         string $pageNumber = null,
         string $itemsPerPage = null
     ) {
-        $url = "api/v3/payers/{$customerId}/tools";
+        $url = "api/v3/payers/{$customerId}/tools"
+            . $this->prepareQueryString(compact('paymentTypeId', 'pageNumber', 'itemsPerPage'));
 
-        $queryArray = [];
-
-        if (isset($paymentTypeId)) {
-            $queryArray['paymentTypeId'] = $paymentTypeId;
-        }
-        if (isset($pageNumber)) {
-            $queryArray['pageNumber'] = $pageNumber;
-        }
-        if (isset($itemsPerPage)) {
-            $queryArray['itemsPerPage'] = $itemsPerPage;
-        }
-
-        if ($queryArray) {
-            $url .= '?' . http_build_query($queryArray);
-        }
-
-        $httpRequest = $this->getHttpRequest($url, 'GET');
-        $responseString = $this->sendRequest($httpRequest);
-        return $this->preparePaymentMethodResponse($responseString);
+        $this->w1Client->execute($url, 'GET');
+        return $this->w1Client->getResponseObject(W1Client::RESP_TYPE_PAYMENT_METHOD);
     }
 
     /**
@@ -331,150 +282,180 @@ class W1Api extends BaseObject
      * @param string $paymentToolId
      * @return string
      * @throws W1ExecuteRequestException
-     * @throws \GuzzleHttp\Exception\GuzzleException
      */
     public function removeCustomerPaymentWay(string $customerId, string $paymentToolId)
     {
         $url = "api/v3/payers/{$customerId}/tools/{$paymentToolId}";
-        $httpRequest = $this->getHttpRequest($url, 'DELETE');
-        $responseString = $this->sendRequest($httpRequest);
-        return $responseString;
-    }
-
-    public function getAllSupplierPayouts()
-    {
-
-    }
-
-    public function getAllCustomerRefunds()
-    {
-
-    }
-
-    public function getAllDealsBySupplier()
-    {
-
-    }
-
-    public function dealsCompleteAll()
-    {
-
-    }
-
-    public function getPlatformPaymentTypes()
-    {
-
-    }
-
-    public function getPlatformPayoutTypes()
-    {
-
+        $this->w1Client->execute($url, 'DELETE');
+        return $this->w1Client->getResponseString();
     }
 
     /**
-     * @return string
+     * Получение списка выплат по исполнителю
+     *
+     * @param string $supplierId
+     * @param string|null $platformDealId
+     * @param string|null $pageNumber
+     * @param string|null $itemsPerPage
+     * @return PayoutResponse
+     * @throws W1ExecuteRequestException
+     * @throws W1WrongParamException
      */
-    private function createTimeStamp()
-    {
-        $timeZone = new \DateTimeZone(self::TIMESTAMP_TIME_ZONE);
-        $currentDateTime = new \DateTime('now', $timeZone);
-        return $currentDateTime->format('Y-m-d\TH:i:s');
+    public function getSupplierPayoutList(
+        string $supplierId,
+        string $platformDealId = null,
+        string $pageNumber = null,
+        string $itemsPerPage = null
+    ) {
+        $url = "/api/v3/beneficiaries/{$supplierId}/payouts"
+            . $this->prepareQueryString(compact('platformDealId', 'pageNumber', 'itemsPerPage'));
+
+        $this->w1Client->execute($url, 'GET');
+        return $this->w1Client->getResponseObject(W1Client::RESP_TYPE_PAYOUT);
     }
+
+
+    /**
+     * Получение списка возвратов по заказчику
+     *
+     * @param string $customerId
+     * @param string|null $platformDealId
+     * @param string|null $pageNumber
+     * @param string|null $itemsPerPage
+     * @return RefundResponse
+     * @throws W1ExecuteRequestException
+     * @throws W1WrongParamException
+     */
+    public function getAllCustomerRefunds(
+        string $customerId,
+        string $platformDealId = null,
+        string $pageNumber = null,
+        string $itemsPerPage = null
+    ) {
+        $url = "/api/v3/payers/{$customerId}/refunds"
+            . $this->prepareQueryString(compact('platformDealId', 'pageNumber', 'itemsPerPage'));
+
+        $this->w1Client->execute($url, 'GET');
+        return $this->w1Client->getResponseObject(W1Client::RESP_TYPE_REFUND);
+    }
+
+    /**
+     * Получение списка сделок  по исполнителю
+     *
+     * @param string $supplierId
+     * @param string|null $dealStates
+     * @param string|null $pageNumber
+     * @param string|null $itemsPerPage
+     * @param string|null $searchString
+     * @return DealResponse
+     * @throws W1ExecuteRequestException
+     * @throws W1WrongParamException
+     */
+    public function getAllDealsBySupplier(
+        string $supplierId,
+        string $dealStates = null,
+        string $pageNumber = null,
+        string $itemsPerPage = null,
+        string $searchString = null
+    ) {
+        $url = "api/v3/beneficiaries/{$supplierId}/deals"
+            . $this->prepareQueryString(compact('dealStates', 'pageNumber', 'itemsPerPage', 'searchString'));
+
+        $this->w1Client->execute($url, 'GET');
+        return $this->w1Client->getResponseObject(W1Client::RESP_TYPE_DEAL);
+    }
+
+    /**
+     * Массовое завершение сделок
+     *
+     * @param array $dealIdList
+     * @param string|null $paymentToolId
+     * @return string
+     * @throws W1ExecuteRequestException
+     * @throws W1WrongParamException
+     */
+    public function dealsCompleteAll(array $dealIdList, string $paymentToolId = null)
+    {
+        $params = ['PlatformDeals' => $dealIdList];
+        if ($paymentToolId !== null) {
+            $params['PaymentToolId'] = $paymentToolId;
+        }
+        $body = json_encode($params);
+
+        $url = "api/v3/deals/complete";
+
+        $this->w1Client->execute($url, 'PUT', $body);
+        return $this->w1Client->getResponseObject(W1Client::RESP_TYPE_DEAL);
+    }
+
+    /**
+     * Получение списка доступных способов ввода для площадки
+     *
+     * @return mixed
+     * @throws W1ExecuteRequestException
+     */
+    public function getPlatformPaymentTypes()
+    {
+        $url = "/api/v3/payin/paymenttypes";
+        $this->w1Client->execute($url, 'GET');
+        return $this->w1Client->getResponseArray();
+    }
+
+    /**
+     * Получение списка доступных способов вывода для площадки
+     *
+     * @return mixed
+     * @throws W1ExecuteRequestException
+     */
+    public function getPlatformPayoutTypes()
+    {
+        $url = "/api/v3/payout/paymenttypes";
+        $this->w1Client->execute($url, 'GET');
+        return $this->w1Client->getResponseArray();
+    }
+
+
+    /**
+     * @return W1Config
+     */
+    public function getConfig()
+    {
+        return $this->conf;
+    }
+
 
     /**
      * @param W1FormRequestInterface $request
-     * @return string
      */
-    private function createSignatureForForm(W1FormRequestInterface $request): string
+    private function createSignatureForForm(W1FormRequestInterface $request)
     {
         $params = $request->toArray();
         ArrayHelper::remove($params, 'signature');
         ksort($params);
         $paramsString = '';
         array_walk(
-            $params, function ($value) use (&$paramsString) {
-            $paramsString .= $value;
-        }
+            $params,
+            function ($value) use (&$paramsString) {
+                $paramsString .= $value;
+            }
         );
-        $request->signature = base64_encode($this->hashFunction($paramsString . $this->signatureKey));
+        $request->signature = base64_encode($this->conf->hashFunction($paramsString . $this->conf->signatureKey));
     }
 
     /**
-     * @param string $url
-     * @param string $timeStamp
-     * @param string $requestBody
+     * @param array $params
      * @return string
      */
-    private function createSignatureForHeader(string $url, string $timeStamp, string $requestBody): string
+    private function prepareQueryString(array $params): string
     {
-        $paramsString = $url . $timeStamp . $requestBody . $this->signatureKey;
-        return base64_encode($this->hashFunction($paramsString));
-    }
-
-    /**
-     * @param string $url
-     * @param string $method
-     * @param string $body
-     * @return Request
-     */
-    private function getHttpRequest(string $url, string $method, string $body = ''): Request
-    {
-        $timeStamp = $this->createTimeStamp();
-        return new Request(
-            $method,
-            $url,
-            [
-                'X-Wallet-PlatformId' => $this->platformId,
-                'X-Wallet-Signature' => $this->createSignatureForHeader($url, $timeStamp, $body),
-                'X-Wallet-Timestamp' => $timeStamp
-            ],
-            $body
-        );
-    }
-
-    /**
-     * @param Request $httpRequest
-     * @return string
-     * @throws W1ExecuteRequestException
-     * @throws \GuzzleHttp\Exception\GuzzleException
-     */
-    private function sendRequest(Request $httpRequest)
-    {
-        try {
-            $client = new Client(['base_uri' => $this->baseW1Url]);
-            $response = $client->send($httpRequest);
-        } catch (RequestException $e) {
-            throw new W1ExecuteRequestException($e);
+        foreach ($params as $key => $val) {
+            if ($val === null) {
+                unset($params[$key]);
+            }
         }
-        $body = $response->getBody();
-        return (string)$body;
-    }
-
-    /**
-     * @param string $response
-     * @return DealResponse
-     */
-    private function prepareDealResponse(string $response): DealResponse
-    {
-        $responseArray = json_decode($response, true);
-        $dealResponse = new DealResponse();
-        if (is_array($responseArray)) {
-            $dealResponse->setAttributes($responseArray);
+        if (count($params) > 0) {
+            return '?' . http_build_query($params);
         }
-        return $dealResponse;
-    }
-
-    /**
-     * @param string $response
-     * @return PaymentMethodResponse
-     */
-    private function preparePaymentMethodResponse(string $response): PaymentMethodResponse
-    {
-        $responseArray = json_decode($response, true);
-        $dealResponse = new PaymentMethodResponse();
-        if (is_array($responseArray)) {
-            $dealResponse->setAttributes($responseArray);
-        }
-        return $dealResponse;
+        return '';
     }
 }
