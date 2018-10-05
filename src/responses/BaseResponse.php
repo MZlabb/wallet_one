@@ -21,14 +21,14 @@ class BaseResponse extends Model implements W1ResponseInterface
     {
         if (ArrayHelper::keyExists($this->listName, $values)) {
             $this->itemList = ArrayHelper::getValue($values, $this->listName, []);
-            $values = ArrayHelper::getValue($values, [$this->listName, 0], []);
+            $values = ArrayHelper::getValue($values, [$this->listName, "0"], []);
         } else {
             $this->itemList[] = $values;
         }
 
         $array = [];
         foreach ($values as $key => $value) {
-            $array[lcfirst($key)] = $values;
+            $array[lcfirst($key)] = $value;
         }
         parent::setAttributes($array, $safeOnly);
     }

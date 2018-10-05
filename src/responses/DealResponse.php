@@ -88,9 +88,35 @@ class DealResponse extends BaseResponse
 
     protected $listName = 'Deals';
 
+    public function rules()
+    {
+        $rules = [
+            [
+                [
+                    'platformDealId',
+                    'platformPayerId',
+                    'payerPhoneNumber',
+                    'platformBeneficiaryId',
+                    'beneficiaryPaymentToolId',
+                    'shortDescription',
+                    'fullDescription',
+                    'payerPaymentToolId',
+                    'dealTypeId',
+                    'lastErrorCode',
+                    'lastErrorMessage',
+                    'dealStateId',
+                ],
+                'string'
+            ],
+            [['createDate', 'updateDate', 'expireDate'], 'number'],
+            [['amount', 'currencyId'], 'number'],
+        ];
+        return ArrayHelper::merge($rules, parent::rules());
+    }
+
     public function setAttributes($values, $safeOnly = true)
     {
-        if (count($values) > 0 && !ArrayHelper::keyExists('Deals', $values) && !ArrayHelper::keyExists('PlatformDealId', $values)) {
+        if (!key_exists($this->listName, $values) && !key_exists('PlatformDealId', $values)) {
             $values = [$this->listName => $values];
         }
         parent::setAttributes($values, $safeOnly);

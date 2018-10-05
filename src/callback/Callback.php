@@ -10,7 +10,7 @@ namespace WalletOne\callback;
 
 
 use WalletOne\exceptions\W1RuntimeException;
-use WalletOne\responses\W1Config;
+use WalletOne\W1Config;
 use yii\base\Model;
 use yii\helpers\ArrayHelper;
 

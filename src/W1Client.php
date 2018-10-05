@@ -17,7 +17,6 @@ use WalletOne\responses\DealResponse;
 use WalletOne\responses\PaymentMethodResponse;
 use WalletOne\responses\PayoutResponse;
 use WalletOne\responses\RefundResponse;
-use WalletOne\responses\W1Config;
 use WalletOne\responses\W1ResponseInterface;
 
 class W1Client

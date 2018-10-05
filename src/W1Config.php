@@ -6,7 +6,7 @@
  * Time: 11:59
  */
 
-namespace WalletOne\responses;
+namespace WalletOne;
 
 use yii\base\BaseObject;
 
@@ -24,7 +24,7 @@ use yii\base\BaseObject;
  * @property bool $isTestMode
  *
  * URL Wallet One API server
- * @property bool $baseW1Url
+ * @property string $baseW1Url
  * 
  */
 
