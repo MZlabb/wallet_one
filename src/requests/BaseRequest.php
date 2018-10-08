@@ -28,10 +28,11 @@ class BaseRequest extends Model implements W1RequestInterface
      * @return W1RequestInterface
      * @throws W1WrongParamException
      */
-    public static function getRequest(string $requestId, array $params): W1RequestInterface
+    public static function getRequest(string $requestId, array $params = []): W1RequestInterface
     {
-        if(class_exists('WalletOne\\requests\\'.$requestId)) {
-            return new $requestId($params);
+        $requestClass = 'WalletOne\\requests\\'.$requestId;
+        if(class_exists($requestClass)) {
+            return new $requestClass($params);
         }
         throw new W1WrongParamException('Wrong request Id passed');
     }
@@ -46,18 +47,12 @@ class BaseRequest extends Model implements W1RequestInterface
         return static::$endPoint;
     }
 
-    public function fields()
-    {
-        $fields = $this->attributes();
-        return array_combine($fields, array_map('ucwords', $fields));
-    }
-
     public function getFormFields(): array
     {
-        $formFields = $this->toArray();
-        foreach ($formFields as $key => $value) {
-            if ($value === null) {
-                unset($formFields[$key]);
+        $formFields = [];
+        foreach ($this->toArray() as $key => $value) {
+            if ($value !== null) {
+                $formFields[ucfirst($key)] = $value;
             }
         }
         return $formFields;
@@ -65,7 +60,16 @@ class BaseRequest extends Model implements W1RequestInterface
 
     public function __toString()
     {
-        return json_encode($this->toArray());
+        return json_encode($this->getFormFields());
+    }
+
+    public function __get($name)
+    {
+        $propertyName = lcfirst($name);
+        if (property_exists($this, $propertyName)) {
+            return $this->$propertyName;
+        }
+        return parent::__get($name);
     }
 }
 

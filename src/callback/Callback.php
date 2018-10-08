@@ -8,9 +8,6 @@
 
 namespace WalletOne\callback;
 
-
-use WalletOne\exceptions\W1RuntimeException;
-use WalletOne\W1Config;
 use yii\base\Model;
 use yii\helpers\ArrayHelper;
 
@@ -45,48 +42,42 @@ class Callback extends Model
     public $signature;
     public $timestamp;
 
-    private $conf;
-
-    public function __construct(W1Config $conf, array $config = [])
+    public function rules()
     {
-        parent::__construct($config);
-        $this->conf = $conf;
+        $rules = [
+            [
+                [
+                    'platformDealId',
+                    'dealStateId',
+                    'errorCode',
+                    'errorDescription',
+                    'signature',
+                    'timestamp',
+                ],
+                'string'
+            ],
+            [
+                [
+                    'platformDealId',
+                    'signature',
+                    'timestamp',
+                ],
+                'required'
+            ],
+        ];
+        return ArrayHelper::merge($rules, parent::rules());
     }
 
     /**
      * @param array $values
      * @param bool $safeOnly
-     * @throws W1RuntimeException
      */
     public function setAttributes($values, $safeOnly = true)
     {
-        $this->validateSignature($values);
         $array = [];
         foreach ($values as $key => $value) {
-            $array[lcfirst($key)] = $values;
+            $array[lcfirst($key)] = $value;
         }
         parent::setAttributes($array, $safeOnly);
-    }
-
-    /**
-     * @param array $params
-     * @throws W1RuntimeException
-     */
-    private function validateSignature(array $params)
-    {
-        $signature = ArrayHelper::getValue($params, 'signature', '');
-        ArrayHelper::remove($params, 'signature');
-        ksort($params);
-        $paramsString = '';
-        array_walk(
-            $params,
-            function ($value) use (&$paramsString) {
-                $paramsString .= $value;
-            }
-        );
-        $calculatedSignature = base64_encode($this->conf->hashFunction($paramsString . $this->conf->signatureKey));
-        if ($signature != $calculatedSignature) {
-            throw new W1RuntimeException('Wrong signature given');
-        }
     }
 }

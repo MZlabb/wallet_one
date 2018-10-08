@@ -11,7 +11,7 @@ namespace WalletOne\Test\testdata;
 
 class DealResponses
 {
-    public static function getSingleResponse()
+    public static function getSingleResponse($returnJson = false)
     {
         $response = '{'.
             '"PlatformDealId":"test_platform",'.
@@ -32,10 +32,10 @@ class DealResponses
             '"LastErrorCode":"string",'.
             '"LastErrorMessage":"string"'.
          '}';
-        return json_decode($response, true);
+        return $returnJson ? $response : json_decode($response, true);
     }
 
-    public static function getMultiResponse()
+    public static function getMultiResponse($returnJson = false)
     {
         $response = '{
   "Deals": [
@@ -99,10 +99,10 @@ class DealResponses
           ],
           "TotalCount": 0
         }';
-        return json_decode($response, true);
+        return $returnJson ? $response : json_decode($response, true);
     }
 
-    public static function getMulti2Response()
+    public static function getMulti2Response($returnJson = false)
     {
         $response = '[ 
     {
@@ -163,7 +163,7 @@ class DealResponses
               "LastErrorMessage":"string"
             }
 ]';
-        return json_decode($response, true);
+        return $returnJson ? $response : json_decode($response, true);
     }
 
 }

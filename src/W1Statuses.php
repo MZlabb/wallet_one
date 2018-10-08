@@ -55,4 +55,22 @@ class W1Statuses
     {
         return ArrayHelper::getValue(self::getStatusNames(), $status, '');
     }
+
+    /**
+     * @param string $status
+     * @return bool
+     */
+    public static function isFinalStatus(string $status) : bool
+    {
+        return in_array($status, [self::COMPLETED, self::CANCELED]);
+    }
+
+    /**
+     * @param string $status
+     * @return bool
+     */
+    public static function isErrorStatus(string $status) : bool
+    {
+        return in_array($status, [self::PAYMENT_PROCESSING_ERROR, self::PAYOUT_PROCESS_ERROR, self::CANCEL_ERROR]);
+    }
 }

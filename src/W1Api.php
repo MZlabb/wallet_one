@@ -8,7 +8,9 @@
 
 namespace WalletOne;
 
+use WalletOne\callback\Callback;
 use WalletOne\exceptions\W1ExecuteRequestException;
+use WalletOne\exceptions\W1RuntimeException;
 use WalletOne\exceptions\W1WrongParamException;
 use WalletOne\requests\DealRegisterRequest;
 use WalletOne\requests\W1FormRequestInterface;
@@ -413,6 +415,22 @@ class W1Api extends BaseObject
         return $this->w1Client->getResponseArray();
     }
 
+    /**
+     * @param array $request
+     * @return Callback
+     * @throws W1RuntimeException
+     * @throws W1WrongParamException
+     */
+    public function prepareW1Callback(array $request)
+    {
+        $this->validateSignature($request);
+        $callback = new Callback();
+        $callback->setAttributes($request);
+        if ($callback->validate()) {
+            throw new W1WrongParamException("Wrong request:".print_r($callback->getErrors(), true));
+        }
+        return $callback;
+    }
 
     /**
      * @return W1Config
@@ -428,17 +446,7 @@ class W1Api extends BaseObject
      */
     private function createSignatureForForm(W1FormRequestInterface $request)
     {
-        $params = $request->toArray();
-        ArrayHelper::remove($params, 'signature');
-        ksort($params);
-        $paramsString = '';
-        array_walk(
-            $params,
-            function ($value) use (&$paramsString) {
-                $paramsString .= $value;
-            }
-        );
-        $request->signature = base64_encode($this->conf->hashFunction($paramsString . $this->conf->signatureKey));
+        $request->signature = $this->generateSignature($request->toArray());
     }
 
     /**
@@ -456,5 +464,36 @@ class W1Api extends BaseObject
             return '?' . http_build_query($params);
         }
         return '';
+    }
+
+    /**
+     * @param array $params
+     * @throws W1RuntimeException
+     */
+    private function validateSignature(array $params)
+    {
+        $signature = ArrayHelper::getValue($params, 'signature', '');
+        $calculatedSignature = $this->generateSignature($params);
+        if ($signature != $calculatedSignature) {
+            throw new W1RuntimeException('Wrong signature given');
+        }
+    }
+
+    /**
+     * @param array $params
+     * @return string
+     */
+    private function generateSignature(array $params)
+    {
+        ArrayHelper::remove($params, 'signature');
+        ksort($params);
+        $paramsString = '';
+        array_walk(
+            $params,
+            function ($value) use (&$paramsString) {
+                $paramsString .= $value;
+            }
+        );
+        return base64_encode(($this->conf->hashFunction)($paramsString . $this->conf->signatureKey));
     }
 }

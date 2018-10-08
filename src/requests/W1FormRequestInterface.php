@@ -20,7 +20,7 @@ namespace WalletOne\requests;
 */
 
 
-interface W1FormRequestInterface
+interface W1FormRequestInterface extends W1RequestInterface
 {
     public function getFormFields():array;
 }

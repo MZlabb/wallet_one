@@ -18,6 +18,17 @@ use WalletOne\responses\PaymentMethodResponse;
 use WalletOne\responses\PayoutResponse;
 use WalletOne\responses\RefundResponse;
 use WalletOne\responses\W1ResponseInterface;
+use Yii;
+
+/**
+ * Property contain the raw string of response
+ * @property string $responseString
+ *
+ * Property contain the array after json_decode responseString
+ * @property string $responseArray
+ *
+ *
+*/
 
 class W1Client
 {
@@ -89,7 +100,10 @@ class W1Client
         );
 
         try {
-            $client = new Client(['base_uri' => $this->conf->baseW1Url]);
+            /**
+             * @var Client $client
+            */
+            $client = Yii::$container->get(Client::class, ['base_uri' => $this->conf->baseW1Url]);
             $response = $client->send($httpRequest);
         } catch (RequestException $e) {
             throw new W1ExecuteRequestException($e);
@@ -146,6 +160,6 @@ class W1Client
     private function createSignature(string $url, string $timeStamp, string $requestBody): string
     {
         $paramsString = $url . $timeStamp . $requestBody . $this->conf->signatureKey;
-        return base64_encode($this->conf->hashFunction($paramsString));
+        return base64_encode(($this->conf->hashFunction)($paramsString));
     }
 }
