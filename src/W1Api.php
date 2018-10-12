@@ -8,141 +8,492 @@
 
 namespace WalletOne;
 
+use WalletOne\callback\Callback;
+use WalletOne\exceptions\W1ExecuteRequestException;
+use WalletOne\exceptions\W1RuntimeException;
+use WalletOne\exceptions\W1WrongParamException;
+use WalletOne\requests\DealRegisterRequest;
+use WalletOne\requests\W1FormRequestInterface;
+use WalletOne\responses\DealResponse;
+use WalletOne\responses\PaymentMethodResponse;
+use WalletOne\responses\PayoutResponse;
+use WalletOne\responses\RefundResponse;
 use yii\base\BaseObject;
+use yii\helpers\ArrayHelper;
 
 /**
  * @property Callable $hashFunction
-*/
-
+ */
 class W1Api extends BaseObject
 {
-    const END_POINT = 'https://api.w1.ru/p2p/';
-    const TEST_END_POINT = 'https://api.dev.walletone.com/p2p/';
+    /**
+     * @var W1Config $conf
+     */
+    private $conf;
+    /**
+     * @var W1Client $w1Client
+     */
+    private $w1Client;
 
-    public $platformId;
-    public $signatureKey;
-
-    private $endpoint;
-
-    public $hashFunction;
-
-    public function __construct(array $config = [], $testMode = false)
+    public function __construct(array $config = [])
     {
-        parent::__construct($config);
-        $this->endpoint = $testMode ? self::END_POINT : self::TEST_END_POINT;
-        $this->hashFunction = function (string $string) {
-            return md5($string);
-        };
+        $this->conf = new W1Config($config);
+        $this->w1Client = new W1Client($this->conf);
+        parent::__construct();
     }
 
-    public function pay()
+    /**
+     * @param W1FormRequestInterface $request
+     * @return mixed
+     * @throws W1WrongParamException
+     */
+    public function getFormData(W1FormRequestInterface $request): array
     {
-        
+        $request->platformId = $this->conf->platformId;
+        $request->timestamp = W1Client::createTimeStamp();
+        $this->createSignatureForForm($request);
+        if (!$request->validate()) {
+            $errorsString = print_r($request->getErrors(), true);
+            throw new W1WrongParamException($errorsString);
+        }
+        return $request->toArray();
     }
 
-    public function addSupplier()
+    /**
+     * @param DealRegisterRequest $request
+     * @return DealResponse
+     * @throws W1ExecuteRequestException
+     * @throws W1WrongParamException
+     */
+    public function dealRegister(DealRegisterRequest $request)
     {
-        
+        if (!$request->validate()) {
+            $errorsString = print_r($request->getErrors(), true);
+            throw new W1WrongParamException($errorsString);
+        }
+        $this->w1Client->execute($request->getEndPoint(), $request->getMethod(), (string)$request);
+        return $this->w1Client->getResponseObject(W1Client::RESP_TYPE_DEAL);
     }
 
-    public function addCustomer()
+    /**
+     * Завершение сделки
+     *
+     * @param string $dealId
+     * @return DealResponse
+     * @throws W1ExecuteRequestException
+     * @throws W1WrongParamException
+     */
+    public function dealComplete(string $dealId)
     {
-        
+        $url = "/api/v3/deals/{$dealId}/complete";
+        $this->w1Client->execute($url, 'PUT');
+        return $this->w1Client->getResponseObject(W1Client::RESP_TYPE_DEAL);
     }
 
-    public function dealRegister()
+    /**
+     * Подтверждение сделки
+     *
+     * @param string $dealId
+     * @return DealResponse
+     * @throws W1ExecuteRequestException
+     * @throws W1WrongParamException
+     */
+    public function dealConfirm(string $dealId)
     {
-
+        $url = "/api/v3/deals/{$dealId}/confirm";
+        $this->w1Client->execute($url, 'PUT');
+        return $this->w1Client->getResponseObject(W1Client::RESP_TYPE_DEAL);
     }
 
-    public function dealComplete()
+    /**
+     * Отмена сделки
+     *
+     * @param string $dealId
+     * @param bool $returnMoneyWithCommission
+     * @return DealResponse
+     * @throws W1ExecuteRequestException
+     * @throws W1WrongParamException
+     */
+    public function dealCancel(string $dealId, bool $returnMoneyWithCommission = false)
     {
-        
+        $body = json_encode(['WithCommission' => $returnMoneyWithCommission]);
+        $url = "/api/v3/deals/{$dealId}/cancel";
+        $this->w1Client->execute($url, 'PUT', $body);
+        return $this->w1Client->getResponseObject(W1Client::RESP_TYPE_DEAL);
     }
 
-    public function dealConfirm()
+    /**
+     * Получение статуса сделки
+     *
+     * @param string $dealId
+     * @return DealResponse
+     * @throws W1ExecuteRequestException
+     * @throws W1WrongParamException
+     */
+    public function getDealStatus(string $dealId)
     {
-        
+        $url = "/api/v3/deals/{$dealId}";
+        $this->w1Client->execute($url, 'GET');
+        return $this->w1Client->getResponseObject(W1Client::RESP_TYPE_DEAL);
     }
 
-    public function dealCancel()
+    /**
+     * Изменение инструмента исполнителя по сделке
+     *
+     * @param string $dealId
+     * @param string $paymentToolId
+     * @param bool $autoComplete
+     * @return DealResponse
+     * @throws W1ExecuteRequestException
+     * @throws W1WrongParamException
+     */
+    public function changeSupplierPaymentWay(string $dealId, string $paymentToolId, bool $autoComplete = false)
     {
-        
+        $body = json_encode(
+            [
+                'PaymentToolId' => $paymentToolId,
+                'AutoComplete' => $autoComplete ? 1 : 0
+            ]
+        );
+        $url = "api/v3/deals/{$dealId}/beneficiary/tool";
+        $this->w1Client->execute($url, 'PUT', $body);
+        return $this->w1Client->getResponseObject(W1Client::RESP_TYPE_DEAL);
     }
 
-    public function getDealStatus()
+    /**
+     * Изменение инструмента заказчика по сделке
+     *
+     * @param string $dealId
+     * @param string $paymentToolId
+     * @return DealResponse
+     * @throws W1ExecuteRequestException
+     * @throws W1WrongParamException
+     */
+    public function changeCustomerPaymentWay(string $dealId, string $paymentToolId)
     {
-        
+        $body = json_encode(
+            [
+                'PaymentToolId' => $paymentToolId
+            ]
+        );
+        $url = "api/v3/deals/{$dealId}/payer/tool";
+        $this->w1Client->execute($url, 'PUT', $body);
+        return $this->w1Client->getResponseObject(W1Client::RESP_TYPE_DEAL);
     }
 
-    public function changeSupplierPaymentWay()
+    /**
+     * Получение инструмента исполнителя
+     *
+     * @param string $supplierId
+     * @param string $paymentToolId
+     * @return PaymentMethodResponse
+     * @throws W1ExecuteRequestException
+     * @throws W1WrongParamException
+     */
+    public function getSupplierPaymentWay(string $supplierId, string $paymentToolId)
     {
-
+        $url = "api/v3/beneficiaries/{$supplierId}/tools/{$paymentToolId}";
+        $this->w1Client->execute($url, 'GET');
+        return $this->w1Client->getResponseObject(W1Client::RESP_TYPE_PAYMENT_METHOD);
     }
 
-    public function changeCustomerPaymentWay()
-    {
+    /**
+     *
+     *
+     * @param string $supplierId
+     * @param string $paymentTypeId
+     * @param string $pageNumber
+     * @param string $itemsPerPage
+     * @return PaymentMethodResponse
+     * @throws W1ExecuteRequestException
+     * @throws W1WrongParamException
+     */
+    public function getSupplierPaymentWayList(
+        string $supplierId,
+        string $paymentTypeId = null,
+        string $pageNumber = null,
+        string $itemsPerPage = null
+    ) {
+        $url = "api/v3/beneficiaries/{$supplierId}/tools"
+            . $this->prepareQueryString(compact('paymentTypeId', 'pageNumber', 'itemsPerPage'));
 
+        $this->w1Client->execute($url, 'GET');
+        return $this->w1Client->getResponseObject(W1Client::RESP_TYPE_PAYMENT_METHOD);
     }
 
-    public function getSupplierPaymentWay()
+    /**
+     * Удаление привязанного инструмента исполнителя
+     *
+     * @param string $supplierId
+     * @param string $paymentToolId
+     * @return string
+     * @throws W1ExecuteRequestException
+     */
+    public function removeSupplierPaymentWay(string $supplierId, string $paymentToolId)
     {
-
+        $url = "api/v3/beneficiaries/{$supplierId}/tools/{$paymentToolId}";
+        $this->w1Client->execute($url, 'DELETE');
+        return $this->w1Client->getResponseString();
     }
 
-    public function removeSupplierPaymentWay()
+    /**
+     * Получение инструмента исполнителя
+     *
+     * @param string $supplierId
+     * @param string $paymentToolId
+     * @return PaymentMethodResponse
+     * @throws W1ExecuteRequestException
+     * @throws W1WrongParamException
+     */
+    public function getCustomerPaymentWay(string $supplierId, string $paymentToolId)
     {
-
+        $url = "api/v3/payers/{$supplierId}/tools/{$paymentToolId}";
+        $this->w1Client->execute($url, 'GET');
+        return $this->w1Client->getResponseObject(W1Client::RESP_TYPE_PAYMENT_METHOD);
     }
 
-    public function getAllSupplierPaymentWays()
-    {
+    /**
+     * Получение списка привязанных инструментов оплаты заказчика
+     *
+     * @param string $customerId
+     * @param string|null $paymentTypeId
+     * @param string|null $pageNumber
+     * @param string|null $itemsPerPage
+     * @return PaymentMethodResponse
+     * @throws W1ExecuteRequestException
+     * @throws W1WrongParamException
+     */
+    public function getCustomerPaymentWayList(
+        string $customerId,
+        string $paymentTypeId = null,
+        string $pageNumber = null,
+        string $itemsPerPage = null
+    ) {
+        $url = "api/v3/payers/{$customerId}/tools"
+            . $this->prepareQueryString(compact('paymentTypeId', 'pageNumber', 'itemsPerPage'));
 
+        $this->w1Client->execute($url, 'GET');
+        return $this->w1Client->getResponseObject(W1Client::RESP_TYPE_PAYMENT_METHOD);
     }
 
-    public function getCustomerPaymentWay()
+    /**
+     * Удаление привязанного инструмента заказчика
+     *
+     * @param string $customerId
+     * @param string $paymentToolId
+     * @return string
+     * @throws W1ExecuteRequestException
+     */
+    public function removeCustomerPaymentWay(string $customerId, string $paymentToolId)
     {
-
+        $url = "api/v3/payers/{$customerId}/tools/{$paymentToolId}";
+        $this->w1Client->execute($url, 'DELETE');
+        return $this->w1Client->getResponseString();
     }
 
-    public function getAllCustomerPaymentWays()
-    {
+    /**
+     * Получение списка выплат по исполнителю
+     *
+     * @param string $supplierId
+     * @param string|null $platformDealId
+     * @param string|null $pageNumber
+     * @param string|null $itemsPerPage
+     * @return PayoutResponse
+     * @throws W1ExecuteRequestException
+     * @throws W1WrongParamException
+     */
+    public function getSupplierPayoutList(
+        string $supplierId,
+        string $platformDealId = null,
+        string $pageNumber = null,
+        string $itemsPerPage = null
+    ) {
+        $url = "/api/v3/beneficiaries/{$supplierId}/payouts"
+            . $this->prepareQueryString(compact('platformDealId', 'pageNumber', 'itemsPerPage'));
 
+        $this->w1Client->execute($url, 'GET');
+        return $this->w1Client->getResponseObject(W1Client::RESP_TYPE_PAYOUT);
     }
 
-    public function removeCustomerPaymentWay()
-    {
 
+    /**
+     * Получение списка возвратов по заказчику
+     *
+     * @param string $customerId
+     * @param string|null $platformDealId
+     * @param string|null $pageNumber
+     * @param string|null $itemsPerPage
+     * @return RefundResponse
+     * @throws W1ExecuteRequestException
+     * @throws W1WrongParamException
+     */
+    public function getAllCustomerRefunds(
+        string $customerId,
+        string $platformDealId = null,
+        string $pageNumber = null,
+        string $itemsPerPage = null
+    ) {
+        $url = "/api/v3/payers/{$customerId}/refunds"
+            . $this->prepareQueryString(compact('platformDealId', 'pageNumber', 'itemsPerPage'));
+
+        $this->w1Client->execute($url, 'GET');
+        return $this->w1Client->getResponseObject(W1Client::RESP_TYPE_REFUND);
     }
 
-    public function getAllSupplierPayouts()
-    {
+    /**
+     * Получение списка сделок  по исполнителю
+     *
+     * @param string $supplierId
+     * @param string|null $dealStates
+     * @param string|null $pageNumber
+     * @param string|null $itemsPerPage
+     * @param string|null $searchString
+     * @return DealResponse
+     * @throws W1ExecuteRequestException
+     * @throws W1WrongParamException
+     */
+    public function getAllDealsBySupplier(
+        string $supplierId,
+        string $dealStates = null,
+        string $pageNumber = null,
+        string $itemsPerPage = null,
+        string $searchString = null
+    ) {
+        $url = "api/v3/beneficiaries/{$supplierId}/deals"
+            . $this->prepareQueryString(compact('dealStates', 'pageNumber', 'itemsPerPage', 'searchString'));
 
+        $this->w1Client->execute($url, 'GET');
+        return $this->w1Client->getResponseObject(W1Client::RESP_TYPE_DEAL);
     }
 
-    public function getAllCustomerRefunds()
+    /**
+     * Массовое завершение сделок
+     *
+     * @param array $dealIdList
+     * @param string|null $paymentToolId
+     * @return string
+     * @throws W1ExecuteRequestException
+     * @throws W1WrongParamException
+     */
+    public function dealsCompleteAll(array $dealIdList, string $paymentToolId = null)
     {
+        $params = ['PlatformDeals' => $dealIdList];
+        if ($paymentToolId !== null) {
+            $params['PaymentToolId'] = $paymentToolId;
+        }
+        $body = json_encode($params);
 
+        $url = "api/v3/deals/complete";
+
+        $this->w1Client->execute($url, 'PUT', $body);
+        return $this->w1Client->getResponseObject(W1Client::RESP_TYPE_DEAL);
     }
 
-    public function getAllDealsBySupplier()
-    {
-        
-    }
-
-    public function dealsCompleteAll()
-    {
-        
-    }
-
+    /**
+     * Получение списка доступных способов ввода для площадки
+     *
+     * @return mixed
+     * @throws W1ExecuteRequestException
+     */
     public function getPlatformPaymentTypes()
     {
-        
+        $url = "/api/v3/payin/paymenttypes";
+        $this->w1Client->execute($url, 'GET');
+        return $this->w1Client->getResponseArray();
     }
 
+    /**
+     * Получение списка доступных способов вывода для площадки
+     *
+     * @return mixed
+     * @throws W1ExecuteRequestException
+     */
     public function getPlatformPayoutTypes()
     {
-        
+        $url = "/api/v3/payout/paymenttypes";
+        $this->w1Client->execute($url, 'GET');
+        return $this->w1Client->getResponseArray();
     }
 
+    /**
+     * @param array $request
+     * @return Callback
+     * @throws W1RuntimeException
+     * @throws W1WrongParamException
+     */
+    public function prepareW1Callback(array $request)
+    {
+        $this->validateSignature($request);
+        $callback = new Callback();
+        $callback->setAttributes($request);
+        if ($callback->validate()) {
+            throw new W1WrongParamException("Wrong request:".print_r($callback->getErrors(), true));
+        }
+        return $callback;
+    }
+
+    /**
+     * @return W1Config
+     */
+    public function getConfig()
+    {
+        return $this->conf;
+    }
+
+
+    /**
+     * @param W1FormRequestInterface $request
+     */
+    private function createSignatureForForm(W1FormRequestInterface $request)
+    {
+        $request->signature = $this->generateSignature($request->toArray());
+    }
+
+    /**
+     * @param array $params
+     * @return string
+     */
+    private function prepareQueryString(array $params): string
+    {
+        foreach ($params as $key => $val) {
+            if ($val === null) {
+                unset($params[$key]);
+            }
+        }
+        if (count($params) > 0) {
+            return '?' . http_build_query($params);
+        }
+        return '';
+    }
+
+    /**
+     * @param array $params
+     * @throws W1RuntimeException
+     */
+    private function validateSignature(array $params)
+    {
+        $signature = ArrayHelper::getValue($params, 'signature', '');
+        $calculatedSignature = $this->generateSignature($params);
+        if ($signature != $calculatedSignature) {
+            throw new W1RuntimeException('Wrong signature given');
+        }
+    }
+
+    /**
+     * @param array $params
+     * @return string
+     */
+    private function generateSignature(array $params)
+    {
+        ArrayHelper::remove($params, 'signature');
+        ksort($params);
+        $paramsString = '';
+        array_walk(
+            $params,
+            function ($value) use (&$paramsString) {
+                $paramsString .= $value;
+            }
+        );
+        return base64_encode(($this->conf->hashFunction)($paramsString . $this->conf->signatureKey));
+    }
 }
