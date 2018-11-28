@@ -84,6 +84,10 @@ class W1Client
      * @param string $method
      * @param string $body
      * @throws W1ExecuteRequestException
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws \yii\base\InvalidConfigException
+     * @throws \yii\di\NotInstantiableException
+     * @throws \Exception
      */
     public function execute(string $url, string $method, string $body = '')
     {
@@ -126,7 +130,7 @@ class W1Client
     public function getResponseArray()
     {
         $array = json_decode($this->responseString, true);
-        return is_array($array) ? $array : [];
+        return \is_array($array) ? $array : [];
     }
 
     /**
@@ -143,8 +147,9 @@ class W1Client
 
     /**
      * @return string
+     * @throws \Exception
      */
-    public static function createTimeStamp()
+    public static function createTimeStamp(): string
     {
         $timeZone = new \DateTimeZone(W1Config::TIMESTAMP_TIME_ZONE);
         $currentDateTime = new \DateTime('now', $timeZone);

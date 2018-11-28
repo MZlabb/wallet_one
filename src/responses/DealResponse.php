@@ -116,7 +116,7 @@ class DealResponse extends BaseResponse
 
     public function setAttributes($values, $safeOnly = true)
     {
-        if (!key_exists($this->listName, $values) && !key_exists('PlatformDealId', $values)) {
+        if (!array_key_exists($this->listName, $values) && !array_key_exists('PlatformDealId', $values)) {
             $values = [$this->listName => $values];
         }
         parent::setAttributes($values, $safeOnly);
