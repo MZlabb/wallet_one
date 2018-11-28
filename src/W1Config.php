@@ -25,9 +25,14 @@ use yii\base\BaseObject;
  *
  * URL Wallet One API server
  * @property string $baseW1Url
- * 
+ *
+ * URL Урл возврата пользователя
+ * @property string $returnUrl
+ *
+ * URL для сallback
+ * @property string $dealCallbackURL
+ *
  */
-
 class W1Config extends BaseObject
 {
     const TIMESTAMP_TIME_ZONE = '+0000';
@@ -40,16 +45,22 @@ class W1Config extends BaseObject
     public $isTestMode = false;
     public $hashFunction;
 
+    public $returnUrl;
+    public $dealCallbackURL;
+
     public function __construct(array $config = [])
     {
         parent::__construct($config);
 
-        $this->hashFunction = $this->hashFunction ?? (function (string $string) {
-            return md5($string);
-        });
+        $this->hashFunction = $this->hashFunction ?? function (string $string) {
+                return md5($string);
+            };
     }
 
-    public function getBaseW1Url()
+    /**
+     * @return string
+     */
+    public function getBaseW1Url(): string
     {
         return $this->isTestMode ? self::TEST_END_POINT : self::END_POINT;
     }
