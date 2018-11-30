@@ -37,16 +37,25 @@ class BaseRequest extends Model implements W1RequestInterface
         throw new W1WrongParamException('Wrong request Id passed');
     }
 
+    /**
+     * @return string
+     */
     public function getMethod(): string
     {
         return static::$method;
     }
 
+    /**
+     * @return string
+     */
     public function getEndPoint(): string
     {
         return static::$endPoint;
     }
 
+    /**
+     * @return array
+     */
     public function getFormFields(): array
     {
         $formFields = [];
@@ -60,7 +69,8 @@ class BaseRequest extends Model implements W1RequestInterface
 
     public function __toString()
     {
-        return json_encode($this->getFormFields());
+        $string = json_encode($this->getFormFields());
+        return $string ?? '';
     }
 
     public function __get($name)
