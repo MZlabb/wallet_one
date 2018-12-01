@@ -86,7 +86,9 @@ class BaseRequest extends Model implements W1RequestInterface
     {
         $resultArray = [];
         foreach (parent::toArray() as $key => $value) {
-            $resultArray[ucfirst($key)] = $value;
+            if ($value !== null) {
+                $resultArray[ucfirst($key)] = $value;
+            }
         }
         return $resultArray;
     }

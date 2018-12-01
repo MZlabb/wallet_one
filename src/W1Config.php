@@ -38,7 +38,7 @@ class W1Config extends BaseObject
     const TIMESTAMP_TIME_ZONE = '+0000';
 
     const END_POINT = 'https://api.w1.ru/p2p/';
-    const TEST_END_POINT = 'https://api.dev.walletone.com/p2p/';
+    const TEST_END_POINT = 'https://api.dev.walletone.com/p2p';
 
     public $platformId;
     public $signatureKey;
