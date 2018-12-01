@@ -82,13 +82,12 @@ class BaseRequest extends Model implements W1RequestInterface
         return parent::__get($name);
     }
 
-    public function toArray()
+    public function toArray(array $fields = [], array $expand = [], $recursive = true)
     {
         $resultArray = [];
-        foreach ($this->toArray() as $key => $value) {
+        foreach (parent::toArray() as $key => $value) {
             $resultArray[ucfirst($key)] = $value;
         }
         return $resultArray;
     }
 }
-
