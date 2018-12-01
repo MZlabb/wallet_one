@@ -65,7 +65,7 @@ class CustomerAddRequest extends BaseRequest implements W1FormRequestInterface
     {
         return [
             [['platformId', 'platformPayerId', 'returnUrl', 'signature', 'timestamp', 'phoneNumber'], 'required'],
-            [['authData', 'paymentTypeId'], 'string'],
+            [['language', 'paymentTypeId', 'title'], 'string'],
             [['redirectToPaymentToolAddition'], 'boolean'],
             [['returnUrl'], 'url']
         ];

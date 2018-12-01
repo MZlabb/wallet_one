@@ -65,7 +65,7 @@ class SupplierAddRequest extends BaseRequest implements W1FormRequestInterface
     {
         return [
             [['platformId', 'platformBeneficiaryId', 'returnUrl', 'signature', 'timestamp', 'phoneNumber'], 'required'],
-            [['authData', 'paymentTypeId'], 'string'],
+            [['language', 'paymentTypeId','title'], 'string'],
             [['redirectToPaymentToolAddition'], 'boolean'],
             [['returnUrl'], 'url']
         ];
