@@ -97,6 +97,9 @@ class W1Api extends BaseObject
      * @return DealResponse
      * @throws W1ExecuteRequestException
      * @throws W1WrongParamException
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws \yii\base\InvalidConfigException
+     * @throws \yii\di\NotInstantiableException
      */
     public function dealConfirm(string $dealId)
     {
@@ -487,13 +490,8 @@ class W1Api extends BaseObject
     {
         ArrayHelper::remove($params, 'signature');
         ksort($params);
-        $paramsString = '';
-        array_walk(
-            $params,
-            function ($value) use (&$paramsString) {
-                $paramsString .= $value;
-            }
-        );
-        return base64_encode(($this->conf->hashFunction)($paramsString . $this->conf->signatureKey));
+        $paramsString = implode('', $params);
+        $hash = ($this->conf->hashFunction)($paramsString . $this->conf->signatureKey);
+        return base64_encode($hash);
     }
 }
