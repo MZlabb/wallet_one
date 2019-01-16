@@ -27,7 +27,7 @@ namespace WalletOne\requests;
  * @property string $platformBeneficiaryId
  *
  * Id платежного метода исполнителя
- * @property bool $beneficiaryPaymentToolId
+ * @property string $beneficiaryPaymentToolId
  *
  * Сумма сделки
  * @property float $amount

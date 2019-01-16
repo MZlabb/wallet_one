@@ -26,7 +26,7 @@ namespace WalletOne\requests;
  * @property string $returnUrl
  *
  * Перейти сразу к добавлению нового инструмента оплаты. Происходит при передаче значения “True”.
- * @property bool $redirectToCardAddition
+ * @property string $redirectToCardAddition
  *
  * Способ оплаты. Перейти к добавлению/выбору инструмента оплаты конкретного способа.
  * Если не передан выбирается способ по умолчанию.
@@ -62,7 +62,7 @@ class PayRequest extends BaseRequest implements W1FormRequestInterface
         return [
             [['platformId', 'platformDealId', 'returnUrl', 'signature', 'timestamp'], 'required'],
             [['authData', 'paymentTypeId'], 'string'],
-            [['redirectToCardAddition'], 'boolean'],
+            [['redirectToCardAddition'], 'string'],
             [['returnUrl'], 'url']
         ];
     }
