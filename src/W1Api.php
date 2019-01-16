@@ -489,9 +489,14 @@ class W1Api extends BaseObject
     private function generateSignature(array $params)
     {
         ArrayHelper::remove($params, 'signature');
-        ksort($params);
-        $paramsString = implode('', $params);
-        $hash = ($this->conf->hashFunction)($paramsString . $this->conf->signatureKey);
-        return base64_encode($hash);
+        uksort($params, "strcasecmp");
+        $request = "";
+        foreach ($params as $k => $v) {
+            $v = iconv("windows-1251", "utf-8", $v);
+            $request .= $v;
+        }
+        $request .= $this->conf->signatureKey;
+        $hash = ($this->conf->hashFunction)($request);
+        return base64_encode(pack("H*", $hash));
     }
 }
