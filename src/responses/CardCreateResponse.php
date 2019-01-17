@@ -111,11 +111,17 @@ class CardCreateResponse extends Model
      */
     private function generateSign(): string
     {
-        $signArray = $this->data;
-        ArrayHelper::remove($signArray, 'Signature');
-        ksort($signArray);
-        $stringToSign = implode('', $signArray) . $this->conf->signatureKey;
-        return base64_encode(($this->conf->hashFunction)($stringToSign));
+        $params = $this->data;
+        ArrayHelper::remove($params, 'signature');
+        uksort($params, "strcasecmp");
+        $request = "";
+        foreach ($params as $k => $v) {
+            $v = iconv("windows-1251", "utf-8", $v);
+            $request .= $v;
+        }
+        $request .= $this->conf->signatureKey;
+        $hash = ($this->conf->hashFunction)($request);
+        return base64_encode(pack("H*", $hash));
     }
 
 }
