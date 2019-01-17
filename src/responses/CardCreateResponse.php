@@ -112,7 +112,7 @@ class CardCreateResponse extends Model
     private function generateSign(): string
     {
         $params = $this->data;
-        ArrayHelper::remove($params, 'signature');
+        ArrayHelper::remove($params, 'Signature');
         uksort($params, "strcasecmp");
         $request = "";
         foreach ($params as $k => $v) {
