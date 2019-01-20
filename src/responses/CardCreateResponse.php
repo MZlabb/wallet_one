@@ -74,7 +74,7 @@ class CardCreateResponse extends Model
                     'platformBeneficiaryId',
                     'beneficiaryPaymentToolId',
                     'platformPayerId',
-                    'platformBeneficiaryId',
+                    'payerPaymentToolId',
                     'signature',
                     'timestamp',
                 ],
