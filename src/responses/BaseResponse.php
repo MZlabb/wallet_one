@@ -14,11 +14,13 @@ use yii\helpers\ArrayHelper;
 
 class BaseResponse extends Model implements W1ResponseInterface
 {
+    protected $rawResponseDataArray = [];
     protected $listName;
     protected $itemList = [];
 
     public function setAttributes($values, $safeOnly = true)
     {
+        $this->rawResponseDataArray = $values;
         if (ArrayHelper::keyExists($this->listName, $values)) {
             $this->itemList = ArrayHelper::getValue($values, $this->listName, []);
             $values = ArrayHelper::getValue($values, [$this->listName, "0"], []);
@@ -42,5 +44,10 @@ class BaseResponse extends Model implements W1ResponseInterface
             $this->setAttributes($paymentMethodArray);
             yield $this;
         }
+    }
+
+    public function __toString()
+    {
+        return json_encode($this->rawResponseDataArray);
     }
 }

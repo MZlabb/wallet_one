@@ -91,13 +91,15 @@ class W1Client
      */
     public function execute(string $url, string $method, string $body = '')
     {
+        $fullUrl = $this->conf->baseW1Url . $url;
         $timeStamp = self::createTimeStamp();
         $httpRequest = new Request(
             $method,
-            $url,
+            $fullUrl,
             [
+                'Content-Type' => 'application/json',
                 'X-Wallet-PlatformId' => $this->conf->platformId,
-                'X-Wallet-Signature' => $this->createSignature($url, $timeStamp, $body),
+                'X-Wallet-Signature' => $this->createSignature($fullUrl, $timeStamp, $body),
                 'X-Wallet-Timestamp' => $timeStamp
             ],
             $body
@@ -107,7 +109,7 @@ class W1Client
             /**
              * @var Client $client
             */
-            $client = Yii::$container->get(Client::class, ['base_uri' => $this->conf->baseW1Url]);
+            $client = Yii::$container->get(Client::class);
             $response = $client->send($httpRequest);
         } catch (RequestException $e) {
             throw new W1ExecuteRequestException($e);
@@ -164,7 +166,12 @@ class W1Client
      */
     private function createSignature(string $url, string $timeStamp, string $requestBody): string
     {
-        $paramsString = $url . $timeStamp . $requestBody . $this->conf->signatureKey;
-        return base64_encode(($this->conf->hashFunction)($paramsString));
+        $paramsString = iconv(
+            "windows-1251",
+            "utf-8",
+            $url . $timeStamp . $requestBody . $this->conf->signatureKey
+        );
+        $hash = ($this->conf->hashFunction)($paramsString);
+        return base64_encode(pack("H*", $hash));
     }
 }
