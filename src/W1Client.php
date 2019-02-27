@@ -17,6 +17,7 @@ use WalletOne\responses\DealResponse;
 use WalletOne\responses\PaymentMethodResponse;
 use WalletOne\responses\PayoutResponse;
 use WalletOne\responses\RefundResponse;
+use WalletOne\responses\ResponseFactory;
 use WalletOne\responses\W1ResponseInterface;
 use Yii;
 
@@ -32,11 +33,6 @@ use Yii;
 
 class W1Client
 {
-    const RESP_TYPE_DEAL = 'deal';
-    const RESP_TYPE_PAYMENT_METHOD = 'payment_method';
-    const RESP_TYPE_PAYOUT = 'payout';
-    const RESP_TYPE_REFUND = 'refund';
-
     /**
      * @var W1Config $conf
      */
@@ -55,29 +51,6 @@ class W1Client
     }
 
     /**
-     * @param string $responseTypeId
-     * @return DealResponse|PaymentMethodResponse|PayoutResponse|RefundResponse|W1ResponseInterface
-     * @throws W1WrongParamException
-     */
-    private static function getResponseObj(string $responseTypeId)
-    {
-        switch ($responseTypeId) {
-            case self::RESP_TYPE_DEAL:
-                return new DealResponse();
-            case self::RESP_TYPE_PAYMENT_METHOD:
-                return new PaymentMethodResponse();
-            case self::RESP_TYPE_PAYOUT:
-                return new PayoutResponse();
-                break;
-            case self::RESP_TYPE_REFUND:
-                return new RefundResponse();
-                break;
-            default:
-                throw new W1WrongParamException('Passed wrong response ID');
-        }
-    }
-
-    /**
      * Prepare and execute request to W1 API
      *
      * @param string $url
@@ -85,8 +58,6 @@ class W1Client
      * @param string $body
      * @throws W1ExecuteRequestException
      * @throws \GuzzleHttp\Exception\GuzzleException
-     * @throws \yii\base\InvalidConfigException
-     * @throws \yii\di\NotInstantiableException
      * @throws \Exception
      */
     public function execute(string $url, string $method, string $body = '')
@@ -114,14 +85,13 @@ class W1Client
         } catch (RequestException $e) {
             throw new W1ExecuteRequestException($e);
         }
-        $body = $response->getBody();
-        $this->responseString = (string)$body;
+        $this->responseString = (string)$response->getBody();
     }
 
     /**
      * @return string
      */
-    public function getResponseString()
+    public function getResponseString(): string
     {
         return $this->responseString;
     }
@@ -142,9 +112,7 @@ class W1Client
      */
     public function getResponseObject(string $responseTypeId)
     {
-        $object = self::getResponseObj($responseTypeId);
-        $object->setAttributes($this->getResponseArray());
-        return $object;
+        return ResponseFactory::createResponse($responseTypeId, $this->getResponseArray());
     }
 
     /**
@@ -167,11 +135,11 @@ class W1Client
     private function createSignature(string $url, string $timeStamp, string $requestBody): string
     {
         $paramsString = iconv(
-            "windows-1251",
-            "utf-8",
+            'windows-1251',
+            'utf-8',
             $url . $timeStamp . $requestBody . $this->conf->signatureKey
         );
         $hash = ($this->conf->hashFunction)($paramsString);
-        return base64_encode(pack("H*", $hash));
+        return base64_encode(pack('H*', $hash));
     }
 }

@@ -44,6 +44,8 @@ namespace WalletOne\requests;
  */
 class PayRequest extends BaseRequest implements W1FormRequestInterface
 {
+    use W1FormTrait;
+
     public $platformId;
     public $platformDealId;
     public $authData;

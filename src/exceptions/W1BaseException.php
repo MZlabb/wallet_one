@@ -10,5 +10,4 @@ namespace WalletOne\exceptions;
 
 class W1BaseException extends \Exception
 {
-
 }

@@ -80,4 +80,8 @@ class Callback extends Model
         }
         parent::setAttributes($array, $safeOnly);
     }
+
+    /**
+     * ToDo: create validation of callback signature
+    */
 }

@@ -8,34 +8,12 @@
 
 namespace WalletOne\requests;
 
-
-use WalletOne\exceptions\W1WrongParamException;
 use yii\base\Model;
 
-class BaseRequest extends Model implements W1RequestInterface
+abstract class BaseRequest extends Model implements W1RequestInterface
 {
-    const PAY_REQUEST = 'PayRequest';
-    const CUSTOMER_ADD_REQUEST = 'CustomerAddRequest';
-    const SUPPLIER_ADD_REQUEST = 'SupplierAddRequest';
-    const DEAL_REGISTER_REQUEST = 'DealRegisterRequest';
-
     public static $method;
     public static $endPoint;
-
-    /**
-     * @param $requestId
-     * @param array $params
-     * @return W1RequestInterface
-     * @throws W1WrongParamException
-     */
-    public static function getRequest(string $requestId, array $params = []): W1RequestInterface
-    {
-        $requestClass = 'WalletOne\\requests\\'.$requestId;
-        if(class_exists($requestClass)) {
-            return new $requestClass($params);
-        }
-        throw new W1WrongParamException('Wrong request Id passed');
-    }
 
     /**
      * @return string
@@ -54,25 +32,19 @@ class BaseRequest extends Model implements W1RequestInterface
     }
 
     /**
-     * @return array
+     * @return string
      */
-    public function getFormFields(): array
-    {
-        $formFields = [];
-        foreach ($this->toArray() as $key => $value) {
-            if ($value !== null) {
-                $formFields[ucfirst($key)] = $value;
-            }
-        }
-        return $formFields;
-    }
-
     public function __toString()
     {
-        $string = json_encode($this->getFormFields());
-        return $string ?? '';
+        $string = json_encode($this->prepareFields());
+        return is_string($string) ? $string : '';
     }
 
+    /**
+     * @param string $name
+     * @return mixed
+     * @throws \yii\base\UnknownPropertyException
+     */
     public function __get($name)
     {
         $propertyName = lcfirst($name);
@@ -82,7 +54,13 @@ class BaseRequest extends Model implements W1RequestInterface
         return parent::__get($name);
     }
 
-    public function toArray(array $fields = [], array $expand = [], $recursive = true)
+    /**
+     * @param array $fields
+     * @param array $expand
+     * @param bool $recursive
+     * @return array
+     */
+    public function toArray(array $fields = [], array $expand = [], $recursive = true): array
     {
         $resultArray = [];
         foreach (parent::toArray() as $key => $value) {
@@ -91,5 +69,21 @@ class BaseRequest extends Model implements W1RequestInterface
             }
         }
         return $resultArray;
+    }
+
+    /**
+     * Prepare fields name like W1 required for request
+     *
+     * @return array
+     */
+    protected function prepareFields(): array
+    {
+        $formFields = [];
+        foreach ($this->toArray() as $key => $value) {
+            if ($value !== null) {
+                $formFields[ucfirst($key)] = $value;
+            }
+        }
+        return $formFields;
     }
 }

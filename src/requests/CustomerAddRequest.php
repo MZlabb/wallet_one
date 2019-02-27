@@ -47,6 +47,8 @@ namespace WalletOne\requests;
 
 class CustomerAddRequest extends BaseRequest implements W1FormRequestInterface
 {
+    use W1FormTrait;
+
     public $platformId;
     public $platformPayerId;
     public $phoneNumber;

@@ -8,7 +8,6 @@
 
 namespace WalletOne;
 
-
 use yii\helpers\ArrayHelper;
 
 class W1Statuses
@@ -29,7 +28,7 @@ class W1Statuses
     /**
      * @return array
      */
-    public static function getStatusNames()
+    public static function getStatusNames(): array
     {
         return [
             self::CREATED => 'Сделка зарегистрирована в системе',
@@ -51,7 +50,7 @@ class W1Statuses
      * @param string $status
      * @return string
      */
-    public static function getStatusName(string $status)
+    public static function getStatusName(string $status): string
     {
         return ArrayHelper::getValue(self::getStatusNames(), $status, '');
     }
@@ -60,17 +59,21 @@ class W1Statuses
      * @param string $status
      * @return bool
      */
-    public static function isFinalStatus(string $status) : bool
+    public static function isFinalStatus(string $status): bool
     {
-        return in_array($status, [self::COMPLETED, self::CANCELED]);
+        return in_array($status, [self::COMPLETED, self::CANCELED], true);
     }
 
     /**
      * @param string $status
      * @return bool
      */
-    public static function isErrorStatus(string $status) : bool
+    public static function isErrorStatus(string $status): bool
     {
-        return in_array($status, [self::PAYMENT_PROCESSING_ERROR, self::PAYOUT_PROCESS_ERROR, self::CANCEL_ERROR]);
+        return in_array(
+            $status,
+            [self::PAYMENT_PROCESSING_ERROR, self::PAYOUT_PROCESS_ERROR, self::CANCEL_ERROR],
+            true
+        );
     }
 }

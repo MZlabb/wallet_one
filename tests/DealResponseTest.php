@@ -8,13 +8,11 @@
 
 use WalletOne\responses\DealResponse;
 use WalletOne\Test\testdata\DealResponses;
-use WalletOne\W1Config;
 
 class DealResponseTest extends PHPUnit_Framework_TestCase
 {
     public function testSetAttributes()
     {
-        $config = self::getConfig();
         $dealResponse = new DealResponse();
         $responseString = DealResponses::getSingleResponse();
         $dealResponse->setAttributes($responseString);
@@ -39,7 +37,6 @@ class DealResponseTest extends PHPUnit_Framework_TestCase
 
     public function testSetAttributesMultiple()
     {
-        $config = self::getConfig();
         $dealResponse = new DealResponse();
         $responseString = DealResponses::getMultiResponse();
         $dealResponse->setAttributes($responseString);
@@ -63,9 +60,9 @@ class DealResponseTest extends PHPUnit_Framework_TestCase
 
         $objArray = [];
         foreach ($dealResponse->getGenerator() as $item) {
-            $objArray[] = clone($item);
+            $objArray[] = clone $item;
         }
-        $this->assertEquals(3, count($objArray));
+        $this->assertCount(3, $objArray);
 
         $this->assertAttributeEquals(10.00, 'amount', $objArray[0]);
         $this->assertAttributeEquals(11.00, 'amount', $objArray[1]);
@@ -74,7 +71,6 @@ class DealResponseTest extends PHPUnit_Framework_TestCase
 
     public function testSetAttributesMultiple2()
     {
-        $config = self::getConfig();
         $dealResponse = new DealResponse();
         $responseString = DealResponses::getMulti2Response();
         $dealResponse->setAttributes($responseString);
@@ -98,23 +94,12 @@ class DealResponseTest extends PHPUnit_Framework_TestCase
 
         $objArray = [];
         foreach ($dealResponse->getGenerator() as $item) {
-            $objArray[] = clone($item);
+            $objArray[] = clone $item;
         }
-        $this->assertEquals(3, count($objArray));
+        $this->assertCount(3, $objArray);
 
         $this->assertAttributeEquals(10.00, 'amount', $objArray[0]);
         $this->assertAttributeEquals(11.00, 'amount', $objArray[1]);
         $this->assertAttributeEquals(12.00, 'amount', $objArray[2]);
-    }
-
-    private static function getConfig()
-    {
-        return new W1Config(
-            [
-                'platformId' => 'test_platform',
-                'signatureKey' => '123456789',
-                'isTestMode' => true,
-            ]
-        );
     }
 }

@@ -47,6 +47,8 @@ namespace WalletOne\requests;
 
 class SupplierAddRequest extends BaseRequest implements W1FormRequestInterface
 {
+    use W1FormTrait;
+
     public $platformId;
     public $platformBeneficiaryId;
     public $phoneNumber;
@@ -71,3 +73,4 @@ class SupplierAddRequest extends BaseRequest implements W1FormRequestInterface
         ];
     }
 }
+

@@ -53,8 +53,8 @@ class W1Config extends BaseObject
         parent::__construct($config);
 
         $this->hashFunction = $this->hashFunction ?? function (string $string) {
-                return md5($string);
-            };
+            return md5($string);
+        };
     }
 
     /**

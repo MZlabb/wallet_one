@@ -14,6 +14,5 @@ interface W1RequestInterface
     public function getEndPoint():string ;
 
     public function __toString();
-
-    public static function getRequest(string $requestId, array $params): self;
+    public function toArray();
 }

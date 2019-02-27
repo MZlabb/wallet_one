@@ -62,7 +62,7 @@ class W1Error
      * @param string $errorCode
      * @return string
      */
-    public static function getErrorDescription(string $errorCode)
+    public static function getErrorDescription(string $errorCode): string
     {
         return ArrayHelper::getValue(self::getErrorDescriptions(), $errorCode, '');
     }
