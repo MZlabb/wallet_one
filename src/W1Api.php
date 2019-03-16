@@ -477,7 +477,7 @@ class W1Api extends BaseObject
         $this->validateSignature($request);
         $callback = new Callback();
         $callback->setAttributes($request);
-        if ($callback->validate()) {
+        if (!$callback->validate()) {
             throw new W1WrongParamException('Wrong request:' .print_r($callback->getErrors(), true));
         }
         return $callback;
@@ -494,7 +494,7 @@ class W1Api extends BaseObject
         $this->validateSignature($request);
         $obj = ResponseFactory::createResponse(ResponseTypesEnum::RESP_TYPE_CARD_CREATE, $request);
         $obj->setAttributes($request);
-        if ($obj->validate()) {
+        if (!$obj->validate()) {
             throw new W1WrongParamException('Wrong request:' .print_r($obj->getErrors(), true));
         }
         return $obj;
