@@ -15,7 +15,7 @@ class ResponseFactory
     /**
      * @param string $responseTypeId
      * @param array $responseData
-     * @return DealResponse|PaymentMethodResponse|PayoutResponse|RefundResponse|W1ResponseInterface
+     * @return DealResponse|PaymentMethodResponse|PayoutResponse|RefundResponse|W1ResponseInterface|CardCreateResponse
      * @throws W1WrongParamException
      */
 
@@ -33,6 +33,9 @@ class ResponseFactory
                 break;
             case ResponseTypesEnum::RESP_TYPE_REFUND:
                 $obj = new RefundResponse();
+                break;
+            case ResponseTypesEnum::RESP_TYPE_CARD_CREATE:
+                $obj = new CardCreateResponse();
                 break;
             default:
                 throw new W1WrongParamException('Passed wrong response ID');

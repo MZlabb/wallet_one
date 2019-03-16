@@ -8,11 +8,6 @@
 
 namespace WalletOne\responses;
 
-use WalletOne\exceptions\W1WrongParamException;
-use WalletOne\W1Config;
-use yii\base\Model;
-use yii\helpers\ArrayHelper;
-
 /**
  * Модель данных статуса сделки.
  *
@@ -35,7 +30,7 @@ use yii\helpers\ArrayHelper;
  * @property string $timestamp
  *
  */
-class CardCreateResponse extends Model
+class CardCreateResponse extends BaseResponse
 {
     public $platformBeneficiaryId;
     public $beneficiaryPaymentToolId;
@@ -43,27 +38,6 @@ class CardCreateResponse extends Model
     public $payerPaymentToolId;
     public $signature;
     public $timestamp;
-
-    private $data;
-    private $conf;
-
-    /**
-     * CardCreateResponse constructor.
-     * @param array $data
-     * @param W1Config $conf
-     * @param array $config
-     * @throws W1WrongParamException
-     */
-    public function __construct(array $data, W1Config $conf, array $config = [])
-    {
-        parent::__construct($config);
-        $this->data = $data;
-        $this->conf = $conf;
-        $this->setAttributes($this->data);
-        if (!$this->validate()) {
-            throw new W1WrongParamException('Wrong response param: ' . print_r($this->getErrors(), true));
-        }
-    }
 
     public function rules()
     {
@@ -80,12 +54,12 @@ class CardCreateResponse extends Model
                 ],
                 'string'
             ],
-            ['signature', 'validateSign']
         ];
     }
 
     public function setAttributes($values, $safeOnly = true)
     {
+        $this->rawResponseDataArray = $values;
         $propArray = [];
         foreach ($values as $key => $value) {
             $prop = lcfirst($key);
@@ -95,33 +69,4 @@ class CardCreateResponse extends Model
         }
         parent::setAttributes($propArray, $safeOnly);
     }
-
-    /**
-     * @param $attribute
-     */
-    public function validateSign($attribute)
-    {
-        if ($this->$attribute !== $this->generateSign()) {
-            $this->addError($attribute, 'Sign is not valid');
-        }
-    }
-
-    /**
-     * @return string
-     */
-    private function generateSign(): string
-    {
-        $params = $this->data;
-        ArrayHelper::remove($params, 'Signature');
-        uksort($params, "strcasecmp");
-        $request = "";
-        foreach ($params as $k => $v) {
-            $v = iconv("windows-1251", "utf-8", $v);
-            $request .= $v;
-        }
-        $request .= $this->conf->signatureKey;
-        $hash = ($this->conf->hashFunction)($request);
-        return base64_encode(pack("H*", $hash));
-    }
-
 }

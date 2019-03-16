@@ -14,4 +14,5 @@ class ResponseTypesEnum
     const RESP_TYPE_PAYMENT_METHOD = 'payment_method';
     const RESP_TYPE_PAYOUT = 'payout';
     const RESP_TYPE_REFUND = 'refund';
+    const RESP_TYPE_CARD_CREATE = 'card_create';
 }

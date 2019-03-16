@@ -14,10 +14,12 @@ use WalletOne\exceptions\W1RuntimeException;
 use WalletOne\exceptions\W1WrongParamException;
 use WalletOne\requests\DealRegisterRequest;
 use WalletOne\requests\W1FormRequestInterface;
+use WalletOne\responses\CardCreateResponse;
 use WalletOne\responses\DealResponse;
 use WalletOne\responses\PaymentMethodResponse;
 use WalletOne\responses\PayoutResponse;
 use WalletOne\responses\RefundResponse;
+use WalletOne\responses\ResponseFactory;
 use WalletOne\responses\ResponseTypesEnum;
 use yii\base\BaseObject;
 use yii\base\Model;
@@ -466,6 +468,23 @@ class W1Api extends BaseObject
     }
 
     /**
+     * @param array $request
+     * @return CardCreateResponse
+     * @throws W1RuntimeException
+     * @throws W1WrongParamException
+     */
+    public function prepareCardCreateRequest(array $request): CardCreateResponse
+    {
+        $this->validateSignature($request);
+        $obj = ResponseFactory::createResponse(ResponseTypesEnum::RESP_TYPE_CARD_CREATE, $request);
+        $obj->setAttributes($request);
+        if ($obj->validate()) {
+            throw new W1WrongParamException('Wrong request:' .print_r($obj->getErrors(), true));
+        }
+        return $obj;
+    }
+
+    /**
      * @return W1Config
      */
     public function getConfig(): W1Config
@@ -505,7 +524,7 @@ class W1Api extends BaseObject
      */
     private function validateSignature(array $params)
     {
-        $signature = ArrayHelper::getValue($params, 'signature', '');
+        $signature = ArrayHelper::getValue($params, 'Signature', '');
         $calculatedSignature = $this->generateSignature($params);
         if ($signature !== $calculatedSignature) {
             throw new W1RuntimeException('Wrong signature given');
@@ -518,7 +537,7 @@ class W1Api extends BaseObject
      */
     private function generateSignature(array $params): string
     {
-        ArrayHelper::remove($params, 'signature');
+        ArrayHelper::remove($params, 'Signature');
         uksort($params, 'strcasecmp');
         $request = '';
         foreach ($params as $k => $v) {
