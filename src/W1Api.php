@@ -14,6 +14,7 @@ use WalletOne\exceptions\W1RuntimeException;
 use WalletOne\exceptions\W1WrongParamException;
 use WalletOne\requests\DealRegisterRequest;
 use WalletOne\requests\W1FormRequestInterface;
+use WalletOne\requests\W1RequestFactory;
 use WalletOne\responses\CardCreateResponse;
 use WalletOne\responses\DealResponse;
 use WalletOne\responses\PaymentMethodResponse;
@@ -68,6 +69,21 @@ class W1Api extends BaseObject
             throw new W1WrongParamException($errorsString);
         }
         return $request->toArray();
+    }
+
+    /**
+     * Prepare all needed fields for customer request via POST form
+     * For request which should send from browser
+     *
+     * @param string $typeRequest
+     * @param array $data
+     * @return array
+     * @throws W1WrongParamException
+     */
+    public function getFormDataByArray(string $typeRequest, array $data): array
+    {
+        $request = W1RequestFactory::getRequest($typeRequest, $data);
+        return $this->getFormData($request);
     }
 
     /**

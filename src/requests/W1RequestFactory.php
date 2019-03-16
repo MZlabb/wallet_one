@@ -17,7 +17,7 @@ class W1RequestFactory
      *
      * @param $requestId
      * @param array $params
-     * @return W1RequestInterface
+     * @return W1RequestInterface | W1FormRequestInterface
      * @throws W1WrongParamException
      */
     public static function getRequest(string $requestId, array $params = []): W1RequestInterface
