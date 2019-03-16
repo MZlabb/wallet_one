@@ -473,7 +473,7 @@ class W1Api extends BaseObject
      * @throws W1RuntimeException
      * @throws W1WrongParamException
      */
-    public function prepareCardCreateRequest(array $request): CardCreateResponse
+    public function prepareCardCreateResponse(array $request): CardCreateResponse
     {
         $this->validateSignature($request);
         $obj = ResponseFactory::createResponse(ResponseTypesEnum::RESP_TYPE_CARD_CREATE, $request);
