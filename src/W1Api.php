@@ -8,7 +8,9 @@
 
 namespace WalletOne;
 
-use WalletOne\callback\Callback;
+use Exception;
+use GuzzleHttp\Exception\GuzzleException;
+use WalletOne\callback\CallbackObj;
 use WalletOne\exceptions\W1ExecuteRequestException;
 use WalletOne\exceptions\W1RuntimeException;
 use WalletOne\exceptions\W1WrongParamException;
@@ -54,7 +56,7 @@ class W1Api extends BaseObject
      * @param W1FormRequestInterface $request
      * @return mixed
      * @throws W1WrongParamException
-     * @throws \Exception
+     * @throws Exception
      */
     public function getFormData(W1FormRequestInterface $request): array
     {
@@ -93,7 +95,7 @@ class W1Api extends BaseObject
      * @return DealResponse
      * @throws W1ExecuteRequestException
      * @throws W1WrongParamException
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws GuzzleException
      */
     public function dealRegister(DealRegisterRequest $request): DealResponse
     {
@@ -112,7 +114,7 @@ class W1Api extends BaseObject
      * @return DealResponse
      * @throws W1ExecuteRequestException
      * @throws W1WrongParamException
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws GuzzleException
      */
     public function dealComplete(string $dealId): DealResponse
     {
@@ -128,7 +130,7 @@ class W1Api extends BaseObject
      * @return DealResponse
      * @throws W1ExecuteRequestException
      * @throws W1WrongParamException
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws GuzzleException
      */
     public function dealConfirm(string $dealId): DealResponse
     {
@@ -145,7 +147,7 @@ class W1Api extends BaseObject
      * @return DealResponse
      * @throws W1ExecuteRequestException
      * @throws W1WrongParamException
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws GuzzleException
      */
     public function dealCancel(string $dealId, bool $returnMoneyWithCommission = false): DealResponse
     {
@@ -162,7 +164,7 @@ class W1Api extends BaseObject
      * @return DealResponse
      * @throws W1ExecuteRequestException
      * @throws W1WrongParamException
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws GuzzleException
      */
     public function getDealStatus(string $dealId): DealResponse
     {
@@ -180,7 +182,7 @@ class W1Api extends BaseObject
      * @return DealResponse
      * @throws W1ExecuteRequestException
      * @throws W1WrongParamException
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws GuzzleException
      */
     public function changeSupplierPaymentWay(
         string $dealId,
@@ -193,7 +195,7 @@ class W1Api extends BaseObject
                 'AutoComplete' => $autoComplete ? 1 : 0
             ]
         );
-        $url = "api/v3/deals/{$dealId}/beneficiary/tool";
+        $url = "/api/v3/deals/{$dealId}/beneficiary/tool";
         $this->w1Client->execute($url, 'PUT', $body);
         return $this->w1Client->getResponseObject(ResponseTypesEnum::RESP_TYPE_DEAL);
     }
@@ -206,7 +208,7 @@ class W1Api extends BaseObject
      * @return DealResponse
      * @throws W1ExecuteRequestException
      * @throws W1WrongParamException
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws GuzzleException
      */
     public function changeCustomerPaymentWay(string $dealId, string $paymentToolId): DealResponse
     {
@@ -215,7 +217,7 @@ class W1Api extends BaseObject
                 'PaymentToolId' => $paymentToolId
             ]
         );
-        $url = "api/v3/deals/{$dealId}/payer/tool";
+        $url = "/api/v3/deals/{$dealId}/payer/tool";
         $this->w1Client->execute($url, 'PUT', $body);
         return $this->w1Client->getResponseObject(ResponseTypesEnum::RESP_TYPE_DEAL);
     }
@@ -228,11 +230,11 @@ class W1Api extends BaseObject
      * @return PaymentMethodResponse
      * @throws W1ExecuteRequestException
      * @throws W1WrongParamException
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws GuzzleException
      */
     public function getSupplierPaymentWay(string $supplierId, string $paymentToolId): PaymentMethodResponse
     {
-        $url = "api/v3/beneficiaries/{$supplierId}/tools/{$paymentToolId}";
+        $url = "/api/v3/beneficiaries/{$supplierId}/tools/{$paymentToolId}";
         $this->w1Client->execute($url, 'GET');
         return $this->w1Client->getResponseObject(ResponseTypesEnum::RESP_TYPE_PAYMENT_METHOD);
     }
@@ -247,7 +249,7 @@ class W1Api extends BaseObject
      * @return PaymentMethodResponse
      * @throws W1ExecuteRequestException
      * @throws W1WrongParamException
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws GuzzleException
      */
     public function getSupplierPaymentWayList(
         string $supplierId,
@@ -255,7 +257,7 @@ class W1Api extends BaseObject
         string $pageNumber = null,
         string $itemsPerPage = null
     ): PaymentMethodResponse {
-        $url = "api/v3/beneficiaries/{$supplierId}/tools"
+        $url = "/api/v3/beneficiaries/{$supplierId}/tools"
             . $this->prepareQueryString(compact('paymentTypeId', 'pageNumber', 'itemsPerPage'));
 
         $this->w1Client->execute($url, 'GET');
@@ -269,11 +271,11 @@ class W1Api extends BaseObject
      * @param string $paymentToolId
      * @return string
      * @throws W1ExecuteRequestException
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws GuzzleException
      */
     public function removeSupplierPaymentWay(string $supplierId, string $paymentToolId): string
     {
-        $url = "api/v3/beneficiaries/{$supplierId}/tools/{$paymentToolId}";
+        $url = "/api/v3/beneficiaries/{$supplierId}/tools/{$paymentToolId}";
         $this->w1Client->execute($url, 'DELETE');
         return $this->w1Client->getResponseString();
     }
@@ -286,11 +288,11 @@ class W1Api extends BaseObject
      * @return PaymentMethodResponse
      * @throws W1ExecuteRequestException
      * @throws W1WrongParamException
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws GuzzleException
      */
     public function getCustomerPaymentWay(string $supplierId, string $paymentToolId): PaymentMethodResponse
     {
-        $url = "api/v3/payers/{$supplierId}/tools/{$paymentToolId}";
+        $url = "/api/v3/payers/{$supplierId}/tools/{$paymentToolId}";
         $this->w1Client->execute($url, 'GET');
         return $this->w1Client->getResponseObject(ResponseTypesEnum::RESP_TYPE_PAYMENT_METHOD);
     }
@@ -305,7 +307,7 @@ class W1Api extends BaseObject
      * @return PaymentMethodResponse
      * @throws W1ExecuteRequestException
      * @throws W1WrongParamException
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws GuzzleException
      */
     public function getCustomerPaymentWayList(
         string $customerId,
@@ -313,7 +315,7 @@ class W1Api extends BaseObject
         string $pageNumber = null,
         string $itemsPerPage = null
     ): PaymentMethodResponse {
-        $url = "api/v3/payers/{$customerId}/tools"
+        $url = "/api/v3/payers/{$customerId}/tools"
             . $this->prepareQueryString(compact('paymentTypeId', 'pageNumber', 'itemsPerPage'));
 
         $this->w1Client->execute($url, 'GET');
@@ -327,11 +329,11 @@ class W1Api extends BaseObject
      * @param string $paymentToolId
      * @return string
      * @throws W1ExecuteRequestException
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws GuzzleException
      */
     public function removeCustomerPaymentWay(string $customerId, string $paymentToolId): string
     {
-        $url = "api/v3/payers/{$customerId}/tools/{$paymentToolId}";
+        $url = "/api/v3/payers/{$customerId}/tools/{$paymentToolId}";
         $this->w1Client->execute($url, 'DELETE');
         return $this->w1Client->getResponseString();
     }
@@ -346,7 +348,7 @@ class W1Api extends BaseObject
      * @return PayoutResponse
      * @throws W1ExecuteRequestException
      * @throws W1WrongParamException
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws GuzzleException
      */
     public function getSupplierPayoutList(
         string $supplierId,
@@ -372,7 +374,7 @@ class W1Api extends BaseObject
      * @return RefundResponse
      * @throws W1ExecuteRequestException
      * @throws W1WrongParamException
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws GuzzleException
      */
     public function getAllCustomerRefunds(
         string $customerId,
@@ -398,7 +400,7 @@ class W1Api extends BaseObject
      * @return DealResponse
      * @throws W1ExecuteRequestException
      * @throws W1WrongParamException
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws GuzzleException
      */
     public function getAllDealsBySupplier(
         string $supplierId,
@@ -407,7 +409,7 @@ class W1Api extends BaseObject
         string $itemsPerPage = null,
         string $searchString = null
     ): DealResponse {
-        $url = "api/v3/beneficiaries/{$supplierId}/deals"
+        $url = "/api/v3/beneficiaries/{$supplierId}/deals"
             . $this->prepareQueryString(compact('dealStates', 'pageNumber', 'itemsPerPage', 'searchString'));
 
         $this->w1Client->execute($url, 'GET');
@@ -422,7 +424,7 @@ class W1Api extends BaseObject
      * @return string
      * @throws W1ExecuteRequestException
      * @throws W1WrongParamException
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws GuzzleException
      */
     public function dealsCompleteAll(array $dealIdList, string $paymentToolId = null): string
     {
@@ -432,7 +434,7 @@ class W1Api extends BaseObject
         }
         $body = json_encode($params);
 
-        $url = 'api/v3/deals/complete';
+        $url = '/api/v3/deals/complete';
 
         $this->w1Client->execute($url, 'PUT', $body);
         return $this->w1Client->getResponseObject(ResponseTypesEnum::RESP_TYPE_DEAL);
@@ -443,7 +445,7 @@ class W1Api extends BaseObject
      *
      * @return mixed
      * @throws W1ExecuteRequestException
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws GuzzleException
      */
     public function getPlatformPaymentTypes()
     {
@@ -457,7 +459,7 @@ class W1Api extends BaseObject
      *
      * @return mixed
      * @throws W1ExecuteRequestException
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws GuzzleException
      */
     public function getPlatformPayoutTypes()
     {
@@ -468,14 +470,14 @@ class W1Api extends BaseObject
 
     /**
      * @param array $request
-     * @return Callback
+     * @return CallbackObj
      * @throws W1RuntimeException
      * @throws W1WrongParamException
      */
-    public function prepareW1Callback(array $request): Callback
+    public function prepareW1Callback(array $request): CallbackObj
     {
         $this->validateSignature($request);
-        $callback = new Callback();
+        $callback = new CallbackObj();
         $callback->setAttributes($request);
         if (!$callback->validate()) {
             throw new W1WrongParamException('Wrong request:' .print_r($callback->getErrors(), true));

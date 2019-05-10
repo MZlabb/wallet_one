@@ -33,7 +33,7 @@ use yii\helpers\ArrayHelper;
  * @property string $timestamp
 */
 
-class Callback extends Model
+class CallbackObj extends Model
 {
     public $platformDealId;
     public $dealStateId;
