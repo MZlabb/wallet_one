@@ -559,7 +559,7 @@ class W1Api extends BaseObject
         uksort($params, 'strcasecmp');
         $request = '';
         foreach ($params as $k => $v) {
-            $v = iconv('windows-1251', 'utf-8', $v);
+//            $v = iconv('windows-1251', 'utf-8', $v);
             $request .= $v;
         }
         $request .= $this->conf->signatureKey;
